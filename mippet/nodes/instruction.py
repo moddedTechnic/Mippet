@@ -11,6 +11,29 @@ __dir__ = Path(__file__).parent
 root = __dir__.parent
 
 
+@dataclass
+class Context:
+    stack: list[tuple[RegisterNode, ...]] = field(default_factory=list, init=False)
+
+    def spill(self, *registers: RegisterNode):
+        self.stack.append(registers)
+        return [
+            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4 * len(registers))),
+        ] + [
+            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(i * 4)), r)
+            for i, r in enumerate(registers, 1)
+        ]
+
+    def unspill(self):
+        registers = self.stack.pop()
+        return [
+            LoadWordInstruction(r, PointerNode(RegisterNode('$sp'), NumberNode(i * 4)))
+            for i, r in enumerate(registers, 1)
+        ] + [
+            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4 * len(registers))),
+        ]
+     
+
 class InstructionNode(Node, ABC):
     _subclasses: dict[str, type[InstructionNode]] = {}
     __mneumonic__: str | None = None
@@ -124,7 +147,7 @@ class StoreWordInstruction(InstructionNode, mneumonic='sw'):
 
     @property
     def arguments(self) -> Iterable[Node]:
-        return [self.destination, self.source]
+        return [self.source, self.destination]
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
@@ -163,12 +186,11 @@ class CallInstruction(InstructionNode, mneumonic='call'):
     proc: IdentifierNode
 
     def construct(self) -> str:
+        ctxt = Context()
         return construct([
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4)),
-            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(4)), RegisterNode('$ra')),
+            ctxt.spill(RegisterNode('$ra')),
             JumpAndLinkInstruction(self.proc),
-            LoadWordInstruction(RegisterNode('$ra'), PointerNode(RegisterNode('$sp'), NumberNode(4))),
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4)),
+            ctxt.unspill(),
         ])
 
     @classmethod
@@ -195,13 +217,12 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
         syscall_id = self.SYSCALLS.get(syscall_name)
         if syscall_id is None:
             raise ValueError(f'Unknown syscall {syscall_name}')
+        ctxt = Context()
         return construct([
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4)),
-            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(4)), RegisterNode('$v0')),
+            ctxt.spill(RegisterNode('$v0')),
             LoadIntegerInstruction(RegisterNode('$v0'), NumberNode(syscall_id)),
             SyscallInstruction(),
-            LoadWordInstruction(RegisterNode('$v0'), PointerNode(RegisterNode('$sp'), NumberNode(4))),
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4)),
+            ctxt.unspill(),
         ])
 
     @classmethod
