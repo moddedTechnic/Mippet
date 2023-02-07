@@ -18,19 +18,19 @@ class Context:
     def spill(self, *registers: RegisterNode):
         self.stack.append(registers)
         return [
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4 * len(registers))),
+            AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(-4 * len(registers))),
         ] + [
-            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(i * 4)), r)
+            StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode(i * 4)), r)
             for i, r in enumerate(registers, 1)
         ]
 
     def unspill(self):
         registers = self.stack.pop()
         return [
-            LoadWordInstruction(r, PointerNode(RegisterNode('$sp'), NumberNode(i * 4)))
+            LoadWordInstruction(r, PointerNode(RegisterNode.sp, NumberNode(i * 4)))
             for i, r in enumerate(registers, 1)
         ] + [
-            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4 * len(registers))),
+            AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(4 * len(registers))),
         ]
      
 
@@ -64,10 +64,23 @@ class InstructionNode(Node, ABC):
 
     @classmethod
     def parse(cls, mneumonic: IdentifierNode, arguments: list[Node]) -> InstructionNode:
-        instruction_cls = cls._subclasses.get(mneumonic.name)
-        if instruction_cls is None:
-            raise ValueError(f'Unknown instruction "{mneumonic}"')
+        instruction_cls = cls._subclasses.get(mneumonic.name, GenericInstruction)
+        if instruction_cls is GenericInstruction:
+            arguments.insert(0, mneumonic)
         return instruction_cls.parse_arguments(arguments)
+
+
+@dataclass
+class GenericInstruction(InstructionNode, mneumonic=''):
+    arguments: list[Node]
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        mneumonic, *arguments = arguments
+        self = cls(arguments)
+        assert isinstance(mneumonic, str)
+        self.__mneumonic__ = mneumonic
+        return self
  
 
 @dataclass
@@ -188,7 +201,7 @@ class CallInstruction(InstructionNode, mneumonic='call'):
     def construct(self) -> str:
         ctxt = Context()
         return construct([
-            ctxt.spill(RegisterNode('$ra')),
+            ctxt.spill(RegisterNode.ra),
             JumpAndLinkInstruction(self.proc),
             ctxt.unspill(),
         ])
@@ -219,8 +232,8 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
             raise ValueError(f'Unknown syscall {syscall_name}')
         ctxt = Context()
         return construct([
-            ctxt.spill(RegisterNode('$v0')),
-            LoadIntegerInstruction(RegisterNode('$v0'), NumberNode(syscall_id)),
+            ctxt.spill(RegisterNode.v0),
+            LoadIntegerInstruction(RegisterNode.v0, NumberNode(syscall_id)),
             SyscallInstruction(),
             ctxt.unspill(),
         ])
