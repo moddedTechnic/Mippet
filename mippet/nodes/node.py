@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -25,12 +27,29 @@ class IdentifierNode(Node):
         return self.name
 
 
-@dataclass
+@dataclass(frozen=True)
 class RegisterNode(Node):
     register: str
 
     def construct(self) -> str:
+        if self.register == '$0':
+            return '$zero'
         return self.register
+
+    @classmethod
+    @property
+    def v0(cls) -> RegisterNode:
+        return cls('$v0')
+
+    @classmethod
+    @property
+    def sp(cls) -> RegisterNode:
+        return cls('$sp')
+
+    @classmethod
+    @property
+    def ra(cls) -> RegisterNode:
+        return cls('$ra')
 
 
 @dataclass
