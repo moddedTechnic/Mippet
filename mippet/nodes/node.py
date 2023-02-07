@@ -9,23 +9,6 @@ class Node(ABC):
 
 
 @dataclass
-class InstructionNode(Node):
-    mneumonic: str
-    arguments: list[Node]
-
-    def construct(self) -> str:
-        return f'    {self.mneumonic} ' + ', '.join(a.construct() for a in self.arguments)
-
-
-@dataclass
-class RegisterNode(Node):
-    register: str
-
-    def construct(self) -> str:
-        return self.register
-
-
-@dataclass
 class NumberNode(Node):
     value: int
 
@@ -42,11 +25,28 @@ class IdentifierNode(Node):
 
 
 @dataclass
+class RegisterNode(Node):
+    register: str
+
+    def construct(self) -> str:
+        return self.register
+
+
+@dataclass
+class PointerNode(Node):
+    base: RegisterNode
+    offset: NumberNode
+
+    def construct(self) -> str:
+        return f'{construct(self.offset)}({construct(self.base)})'
+
+
+@dataclass
 class LabelNode(Node):
     name: str
 
     def construct(self) -> str:
-        return f'{self.name}:'
+        return f'\n{self.name}:'
 
 
 @dataclass
@@ -55,7 +55,7 @@ class SectionNode(Node):
     body: list[Node]
 
     def construct(self) -> str:
-        return f'{self.typ}\n' + construct(self.body)
+        return f'{self.typ}\n' + construct(self.body) + '\n'
 
 
 def construct(ast: Node | list[Node]) -> str:

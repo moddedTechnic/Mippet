@@ -6,10 +6,12 @@ class Tokens(Enum):
     SECTION = r'\.[a-z]+'
     REGISTER = r'\$(zero|at|v[01]|a[0-3]|t[0-9]|s[0-7]|k[01]|gp|sp|fp|ra)'
     IDENTIFIER = r'[a-z_]+'
-    NUMBER = r'\d+'
+    NUMBER = r'-?\d+'
     
     COMMA = r','
     COLON = r':'
+    OPEN_PAREN = r'\('
+    CLOSE_PAREN = r'\)'
 
     @classmethod
     def items(cls) -> Iterable[tuple[str, str]]:

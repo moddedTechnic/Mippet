@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from pprint import pprint
 
-from mippet import construct, lex, parse, preprocess
+from mippet import construct, lex, parse
 
 
 @dataclass
@@ -23,7 +23,6 @@ def main(argv: list[str]):
     args = Arguments.parse(argv)
     source = args.target.read_text()
     ast = parse(lex(source))
-    ast = preprocess(ast)
     result = construct(ast)
     target_path = args.target.relative_to(Path.cwd())
     build_target = args.build_dir / target_path

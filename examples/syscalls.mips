@@ -8,5 +8,5 @@ main:
 
 
 exit:
-  syscall exit
+  syscall halt
 

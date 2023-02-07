@@ -37,7 +37,7 @@ def label(p):
 
 @pg.production('instruction : IDENTIFIER arguments')
 def instruction(p):
-    return InstructionNode(p[0].getstr(), p[1])
+    return InstructionNode.parse(p[0].getstr(), p[1])
 
 
 @pg.production('arguments : ')
@@ -55,19 +55,34 @@ def arguments_many(p):
     return [p[0], *p[2]]
 
 
-@pg.production('argument : NUMBER')
+@pg.production('argument : number')
+@pg.production('argument : identifier')
+@pg.production('argument : register')
+@pg.production('argument : pointer')
+def argument(p):
+    return p[0]
+
+
+@pg.production('pointer : number OPEN_PAREN register CLOSE_PAREN')
+def pointer(p):
+    return PointerNode(p[2], p[0])
+
+
+@pg.production('number : NUMBER')
 def number(p):
     return NumberNode(int(p[0].getstr()))
 
 
-@pg.production('argument : IDENTIFIER')
-def argument(p):
+@pg.production('identifier : IDENTIFIER')
+def identifier(p):
     return IdentifierNode(p[0].getstr())
 
 
-@pg.production('argument : REGISTER')
+@pg.production('register : REGISTER')
 def register(p):
     return RegisterNode(p[0].getstr())
+
+
 
 
 parser = pg.build()
