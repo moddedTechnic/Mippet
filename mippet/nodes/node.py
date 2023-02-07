@@ -70,7 +70,7 @@ class SectionNode(Node):
         return f'{self.typ}\n' + construct(self.body) + '\n'
 
 
-def construct(ast: Node | list[Node]) -> str:
+def construct(ast) -> str:
     if isinstance(ast, list):
         return '\n'.join(construct(n) for n in ast)
     return ast.construct()
