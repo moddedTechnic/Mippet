@@ -25,7 +25,7 @@ def main(argv: list[str]):
     ast = parse(lex(source))
     result = construct(ast)
     target_path = args.target.relative_to(Path.cwd())
-    build_target = args.build_dir / target_path
+    build_target = (args.build_dir / target_path).with_suffix('.mips')
     build_target.parent.mkdir(parents=True, exist_ok=True)
     build_target.write_text(result)
     return None

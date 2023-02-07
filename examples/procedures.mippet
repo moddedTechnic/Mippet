@@ -1,0 +1,14 @@
+.text
+entry:
+  j main
+
+proc log():
+  li $a0, 42
+  syscall print_int
+
+main:
+  call log
+
+exit:
+  syscall halt
+

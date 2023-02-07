@@ -28,9 +28,8 @@ class InstructionNode(Node, ABC):
         return self.__mneumonic__
 
     @property
-    @abstractmethod
     def arguments(self) -> Iterable[Node]:
-        raise NotImplementedError()
+        return []
 
     def construct(self) -> str:
         return f'    {self.mneumonic} ' + ', '.join(a.construct() for a in self.arguments)
@@ -41,8 +40,8 @@ class InstructionNode(Node, ABC):
         raise NotImplementedError()
 
     @classmethod
-    def parse(cls, mneumonic: str, arguments: list[Node]) -> InstructionNode:
-        instruction_cls = cls._subclasses.get(mneumonic)
+    def parse(cls, mneumonic: IdentifierNode, arguments: list[Node]) -> InstructionNode:
+        instruction_cls = cls._subclasses.get(mneumonic.name)
         if instruction_cls is None:
             raise ValueError(f'Unknown instruction "{mneumonic}"')
         return instruction_cls.parse_arguments(arguments)
@@ -61,6 +60,22 @@ class JumpInstruction(InstructionNode, mneumonic='j'):
         target = arguments[0]
         if not isinstance(target, IdentifierNode):
             raise ValueError(f'Expected an identifier as the argument to `j`')
+        return cls(target)
+
+
+@dataclass
+class JumpAndLinkInstruction(InstructionNode, mneumonic='jal'):
+    target: IdentifierNode
+
+    @property
+    def arguments(self) -> Iterable[Node]:
+        return [self.target]
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        target = arguments[0]
+        if not isinstance(target, IdentifierNode):
+            raise ValueError(f'`jal` expected an identifier as the first parameter')
         return cls(target)
 
 
@@ -144,6 +159,27 @@ class AddIntegerInstruction(InstructionNode, mneumonic='addi'):
 
 
 @dataclass
+class CallInstruction(InstructionNode, mneumonic='call'):
+    proc: IdentifierNode
+
+    def construct(self) -> str:
+        return construct([
+            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4)),
+            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(4)), RegisterNode('$ra')),
+            JumpAndLinkInstruction(self.proc),
+            LoadWordInstruction(RegisterNode('$ra'), PointerNode(RegisterNode('$sp'), NumberNode(4))),
+            AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4)),
+        ])
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        proc = arguments[0]
+        if not isinstance(proc, IdentifierNode):
+            raise ValueError(f'`call` expects a procedure to call')
+        return cls(proc)
+
+
+@dataclass
 class SyscallInstruction(InstructionNode, mneumonic='syscall'):
     identifier: IdentifierNode | None = None
 
@@ -151,11 +187,6 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
     for line in (root / 'syscalls.txt').open('r'):
         name, id, *_ = line.split(' ')
         SYSCALLS[name] = id
-
-
-    @property
-    def arguments(self) -> Iterable[Node]:
-        return []
 
     def construct(self) -> str:
         if self.identifier is None:
@@ -166,10 +197,10 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
             raise ValueError(f'Unknown syscall {syscall_name}')
         return construct([
             AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(-4)),
-            StoreWordInstruction(RegisterNode('$v0'), RegisterNode('4($sp)')),
+            StoreWordInstruction(PointerNode(RegisterNode('$sp'), NumberNode(4)), RegisterNode('$v0')),
             LoadIntegerInstruction(RegisterNode('$v0'), NumberNode(syscall_id)),
             SyscallInstruction(),
-            LoadWordInstruction(RegisterNode('$v0'), RegisterNode('4($sp)')),
+            LoadWordInstruction(RegisterNode('$v0'), PointerNode(RegisterNode('$sp'), NumberNode(4))),
             AddIntegerInstruction(RegisterNode('$sp'), RegisterNode('$sp'), NumberNode(4)),
         ])
 

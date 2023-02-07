@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import OrderedDict
 from dataclasses import dataclass
 
 
@@ -43,10 +44,21 @@ class PointerNode(Node):
 
 @dataclass
 class LabelNode(Node):
-    name: str
+    name: IdentifierNode
 
     def construct(self) -> str:
-        return f'\n{self.name}:'
+        return f'\n{construct(self.name)}:'
+
+
+@dataclass
+class ProcedureNode(Node):
+    name: IdentifierNode
+    parameters: OrderedDict[str, Node]
+
+    def construct(self) -> str:
+        return construct([
+            LabelNode(self.name)
+        ])
 
 
 @dataclass
