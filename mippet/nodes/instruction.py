@@ -193,6 +193,36 @@ class StoreWordInstruction(InstructionNode, mneumonic='sw'):
 
 
 @dataclass
+class PushInstuction(InstructionNode, mneumonic='push'):
+    source: RegisterNode
+
+    def construct(self) -> str:
+        return construct(Context().spill(self.source))
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        source = arguments[0]
+        if not isinstance(source, RegisterNode):
+            raise ValueError(f'`push` expects a pointer as the argument')
+        return cls(source)
+
+
+@dataclass
+class PopInstruction(InstructionNode, mneumonic='pop'):
+    destination: RegisterNode
+
+    def construct(self) -> str:
+        return construct(Context().unspill((self.destination,)))
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        destination = arguments[0]
+        if not isinstance(destination, RegisterNode):
+            raise ValueError(f'`pop` expects a pointer as the argument')
+        return cls(destination)
+
+
+@dataclass
 class MathIntegerInstruction(InstructionNode, mneumonic=''):
     destination: RegisterNode
     source: RegisterNode
@@ -240,10 +270,13 @@ class AddIntegerInstruction(MathIntegerInstruction, mneumonic='addi'):
 
 
 class MultiplyIntegerInstruction(MathIntegerInstruction, mneumonic='muli'):
+    """$D = $S * value
+    For technical reasons, $D cannot be $t9
+    """
     def construct(self) -> str:
         return construct([
-            LoadIntegerInstruction(self.destination, self.value),
-            MultiplyRegisterInstruction(self.destination, self.destination, self.source),
+            LoadIntegerInstruction(RegisterNode('$t9'), self.value),
+            MultiplyRegisterInstruction(self.destination, RegisterNode('$t9'), self.source),
         ])
 
 
