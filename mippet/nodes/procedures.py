@@ -18,7 +18,7 @@ class SectionNode(Node):
             f'{self.typ}\n',
             LabelNode(IdentifierNode('entry')),
             CallInstruction(IdentifierNode('main')),
-            SyscallInstruction(IdentifierNode('exit')),
+            SyscallInstruction(IdentifierNode('halt')),
             self.body,
             '\n'
         ])
