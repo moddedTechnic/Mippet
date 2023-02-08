@@ -15,7 +15,7 @@ class SectionNode(Node):
 
     def construct(self) -> str:
         return construct([
-            f'{self.typ}\n',
+            self.typ,
             LabelNode(IdentifierNode('entry')),
             CallInstruction(IdentifierNode('main')),
             SyscallInstruction(IdentifierNode('halt')),
