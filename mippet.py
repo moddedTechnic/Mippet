@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from pprint import pprint
 
 from mippet import construct, lex, parse
+from mippet.nodes import instruction
 
 
 @dataclass
@@ -19,15 +19,37 @@ class Arguments:
         return cls(executable, target, build_dir)
 
 
-def main(argv: list[str]):
-    args = Arguments.parse(argv)
-    source = args.target.read_text()
+def build_dir(args: Arguments, target: Path):
+    target_relative = target.relative_to(Path.cwd())
+    print(f'Entering {target_relative}')
+    for child in target.glob('*'):
+        build(args, child)
+
+
+def build_file(args: Arguments, target: Path):
+    target_relative = target.relative_to(Path.cwd())
+    print(f'Building {target_relative}')
+    source = target.read_text()
     ast = parse(lex(source))
     result = construct(ast)
-    target_path = args.target.relative_to(Path.cwd())
+    target_path = target_relative
     build_target = (args.build_dir / target_path).with_suffix('.mips')
     build_target.parent.mkdir(parents=True, exist_ok=True)
     build_target.write_text(result)
+
+
+def build(args: Arguments, target: Path):
+    if target.is_dir():
+        return build_dir(args, target)
+    if target.is_file():
+        return build_file(args, target)
+    target_relative = target.relative_to(Path.cwd())
+    print(f'Skipping {target_relative}: not a file')
+
+
+def main(argv: list[str]):
+    args = Arguments.parse(argv)
+    build(args, args.target)
     return None
 
 
