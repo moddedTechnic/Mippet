@@ -41,15 +41,16 @@ class InstructionNode(Node, ABC):
 
    
     def __init_subclass__(cls, *, mneumonic: str, **kwargs) -> None:
+        print(mneumonic)
         cls._subclasses[mneumonic] = cls
         cls.__mneumonic__ = mneumonic
         return super().__init_subclass__(**kwargs)
 
     @property
-    def mneumonic(self) -> str:
-        if self.__mneumonic__ is None:
-            raise NotImplementedError(f'{type(self).__name__} is abstract')
-        return self.__mneumonic__
+    def mneumonic(cls) -> str:
+        if cls.__mneumonic__ is None:
+            raise NotImplementedError(f'{type(cls).__name__} is abstract')
+        return cls.__mneumonic__
 
     @property
     def arguments(self) -> Iterable[Node]:
@@ -72,14 +73,18 @@ class InstructionNode(Node, ABC):
 
 @dataclass
 class GenericInstruction(InstructionNode, mneumonic=''):
-    arguments: list[Node]
+    _arguments: list[Node]
+
+    @property
+    def arguments(self) -> Iterable[Node]:
+        return self._arguments
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
         mneumonic, *arguments = arguments
         self = cls(arguments)
-        assert isinstance(mneumonic, str)
-        self.__mneumonic__ = mneumonic
+        assert isinstance(mneumonic, IdentifierNode)
+        self.__mneumonic__ = mneumonic.name
         return self
  
 
@@ -189,7 +194,7 @@ class StoreWordInstruction(InstructionNode, mneumonic='sw'):
 
 
 @dataclass
-class AddIntegerInstruction(InstructionNode, mneumonic='addi'):
+class MathIntegerInstruction(InstructionNode, mneumonic=''):
     destination: RegisterNode
     source: RegisterNode
     value: NumberNode
@@ -202,12 +207,49 @@ class AddIntegerInstruction(InstructionNode, mneumonic='addi'):
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
         destination, source, value = arguments
         if not isinstance(destination, RegisterNode):
-            raise ValueError(f'Expected a register as the first argument to `addi`')
+            raise ValueError(f'Expected a register as the first argument to `{cls.mneumonic}`')
         if not isinstance(source, RegisterNode):
-            raise ValueError(f'Expected a register as the second argument to `addi`')
+            raise ValueError(f'Expected a register as the second argument to `{cls.mneumonic}`')
         if not isinstance(value, NumberNode):
-            raise ValueError(f'Expected an integer as the third argument to `addi`')
+            raise ValueError(f'Expected an integer as the third argument to `{cls.mneumonic}`')
         return cls(destination, source, value)
+
+
+@dataclass
+class MathRegisterInstruction(InstructionNode, mneumonic=''):
+    destination: RegisterNode
+    source: RegisterNode
+    value: RegisterNode
+
+    @property
+    def arguments(self) -> Iterable[Node]:
+        return [self.destination, self.source, self.value]
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        destination, source, value = arguments
+        if not isinstance(destination, RegisterNode):
+            raise ValueError(f'Expected a register as the first argument to `{cls.mneumonic}`')
+        if not isinstance(source, RegisterNode):
+            raise ValueError(f'Expected a register as the second argument to `{cls.mneumonic}`')
+        if not isinstance(value, RegisterNode):
+            raise ValueError(f'Expected an register as the third argument to `{cls.mneumonic}`')
+        return cls(destination, source, value)
+
+class AddIntegerInstruction(MathIntegerInstruction, mneumonic='addi'):
+    pass
+
+
+class MultiplyIntegerInstruction(MathIntegerInstruction, mneumonic='muli'):
+    def construct(self) -> str:
+        return construct([
+            LoadIntegerInstruction(self.destination, self.value),
+            MultiplyRegisterInstruction(self.destination, self.destination, self.source),
+        ])
+
+
+class MultiplyRegisterInstruction(MathRegisterInstruction, mneumonic='mul'):
+    pass
 
 
 @dataclass
