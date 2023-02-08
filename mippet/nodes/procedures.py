@@ -1,11 +1,27 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from .instruction import Context, InstructionNode, JumpRegisterInstruction
+from .instruction import CallInstruction, Context, InstructionNode, JumpRegisterInstruction, SyscallInstruction
 from .node import *
 
 
 PROCEDURE_SPILLS = tuple(RegisterNode(f'$s{i}') for i in range(8))
+
+
+@dataclass
+class SectionNode(Node):
+    typ: str
+    body: list[Node]
+
+    def construct(self) -> str:
+        return construct([
+            f'{self.typ}\n',
+            LabelNode(IdentifierNode('entry')),
+            CallInstruction(IdentifierNode('main')),
+            SyscallInstruction(IdentifierNode('exit')),
+            self.body,
+            '\n'
+        ])
 
 
 @dataclass

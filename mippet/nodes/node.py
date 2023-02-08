@@ -98,16 +98,6 @@ class LabelNode(Node):
         return f'\n{construct(self.name)}:'
 
 
-
-@dataclass
-class SectionNode(Node):
-    typ: str
-    body: list[Node]
-
-    def construct(self) -> str:
-        return f'{self.typ}\n' + construct(self.body) + '\n'
-
-
 def construct(ast) -> str:
     if isinstance(ast, list):
         return '\n'.join(construct(n) for n in ast)
