@@ -1,14 +1,15 @@
 .text
 entry:
-  j main
+  j main;
 
 proc log():
-  li $a0, 42
-  syscall print_int
+  li $a0, 42;
+  syscall print_int;
+  ret;
 
 main:
-  call log
+  call log;
 
 exit:
-  syscall halt
+  syscall halt;
 

@@ -1,12 +1,12 @@
 .text
 entry:
-  j main
+  j main;
 
 main:
-  li $a0, 5
-  syscall print_int
+  li $a0, 5;
+  syscall print_int;
 
 
 exit:
-  syscall halt
+  syscall halt;
 

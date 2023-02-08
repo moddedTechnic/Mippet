@@ -27,7 +27,7 @@ def statements_one(p):
 
 
 @pg.production('statement : label')
-@pg.production('statement : instruction')
+@pg.production('statement : instruction SEMI')
 @pg.production('statement : procedure')
 @pg.production('statement : comment')
 def statement(p):

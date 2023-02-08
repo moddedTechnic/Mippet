@@ -15,6 +15,7 @@ class Tokens(Enum):
     
     COMMA = r','
     COLON = r':'
+    SEMI = r';'
     OPEN_PAREN = r'\('
     CLOSE_PAREN = r'\)'
 

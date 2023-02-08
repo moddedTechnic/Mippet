@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from .instruction import Context, InstructionNode
+from .instruction import Context, InstructionNode, JumpRegisterInstruction
 from .node import *
 
 
@@ -25,11 +25,18 @@ class ProcedureNode(Node):
                 for name, r in self.parameters.items()
             ])
         ctxt = Context()
-        return ''.join(map(construct, [
-            DocCommentNode(self.name, doc_comments),
-            LabelNode(self.name),
-            ctxt.spill(*PROCEDURE_SPILLS),
-        ]))
+        documentation = construct(doc_comments)
+        label = construct(LabelNode(self.name))
+        if documentation:
+            label = label.lstrip()
+            documentation = '\n' + documentation
+        spill = construct(ctxt.spill(*PROCEDURE_SPILLS))
+        return '\n'.join(
+            filter(
+                lambda x: x.strip(),
+                [documentation, label, spill],
+            )
+        )
 
 
 class ReturnInstruction(InstructionNode, mneumonic='ret'):
@@ -38,5 +45,17 @@ class ReturnInstruction(InstructionNode, mneumonic='ret'):
             Context().unspill(PROCEDURE_SPILLS),
             JumpRegisterInstruction(RegisterNode.ra),
         ])
+
+
+
+
+
+
+
+
+
+
+
+
 
 

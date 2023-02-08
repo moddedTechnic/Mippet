@@ -1,16 +1,17 @@
 .text
 entry:
-  j main
+  j main;
 
 ## log
 # prints 'x' to stdout
 ##
 proc log(x: $a0):
-  syscall print_int
+  syscall print_int;
+  ret;
 
 main:
-  call log
+  call log;
 
 exit:
-  syscall halt
+  syscall halt;
 

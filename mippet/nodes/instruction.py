@@ -59,9 +59,8 @@ class InstructionNode(Node, ABC):
         return f'    {self.mneumonic} ' + ', '.join(a.construct() for a in self.arguments)
 
     @classmethod
-    @abstractmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
-        raise NotImplementedError()
+        return cls()
 
     @classmethod
     def parse(cls, mneumonic: IdentifierNode, arguments: list[Node]) -> InstructionNode:
@@ -248,12 +247,17 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
         if syscall_id is None:
             raise ValueError(f'Unknown syscall {syscall_name}')
         ctxt = Context()
-        return construct([
-            ctxt.spill(RegisterNode.v0),
-            LoadIntegerInstruction(RegisterNode.v0, NumberNode(syscall_id)),
-            SyscallInstruction(),
-            ctxt.unspill(),
-        ])
+        return '\n'.join(
+            filter(
+                lambda x: x.strip(),
+                construct([
+                    ctxt.spill(RegisterNode.v0),
+                    LoadIntegerInstruction(RegisterNode.v0, NumberNode(syscall_id)),
+                    SyscallInstruction(),
+                    ctxt.unspill(),
+                ]).splitlines()
+            )
+        )
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:

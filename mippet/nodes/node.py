@@ -24,6 +24,8 @@ class DocCommentNode(Node):
     comments: list[CommentNode]
     
     def construct(self) -> str:
+        if not self.comments:
+            return ''
         return construct([
             f'\n## {construct(self.item)}',
             self.comments,
