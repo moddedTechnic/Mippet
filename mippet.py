@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from mippet import construct, lex, parse
-from mippet.nodes import instruction
 
 
 @dataclass
@@ -10,6 +9,7 @@ class Arguments:
     executable: Path
     target: Path
     build_dir: Path
+    extension: str = '.asm'
 
     @classmethod
     def parse(cls, argv: list[str]):
@@ -33,7 +33,7 @@ def build_file(args: Arguments, target: Path):
     ast = parse(lex(source))
     result = construct(ast)
     target_path = target_relative
-    build_target = (args.build_dir / target_path).with_suffix('.mips')
+    build_target = (args.build_dir / target_path).with_suffix(args.extension)
     build_target.parent.mkdir(parents=True, exist_ok=True)
     build_target.write_text(result)
 
