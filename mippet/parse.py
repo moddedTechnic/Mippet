@@ -89,7 +89,7 @@ def parameters_one(p):
 
 @pg.production('parameters : parameter COMMA parameters')
 def parameters_many(p):
-    return [p[0], *p[1]]
+    return [p[0], *p[2]]
 
 
 @pg.production('parameter : identifier COLON pointer')
@@ -106,6 +106,11 @@ def pointer(p):
 @pg.production('number : NUMBER')
 def number(p):
     return NumberNode(int(p[0].getstr()))
+
+
+@pg.production('number : HEX_NUMBER')
+def hex_number(p):
+    return NumberNode(int(p[0].getstr(), 16))
 
 
 @pg.production('identifier : IDENTIFIER')
