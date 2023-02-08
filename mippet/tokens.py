@@ -10,7 +10,7 @@ class Tokens(Enum):
 
     SECTION = r'\.[a-z]+'
     REGISTER = r'\$(zero|at|v[01]|a[0-3]|t[0-9]|s[0-7]|k[01]|gp|sp|fp|ra)'
-    IDENTIFIER = r'[a-z_]+'
+    IDENTIFIER = r'[a-zA-Z_][a-zA-Z_\d]*'
     HEX_NUMBER = r'0x[\da-fA-F]+'
     NUMBER = r'-?\d+'
     
