@@ -24,8 +24,9 @@ class Context:
             for i, r in enumerate(registers, 1)
         ]
 
-    def unspill(self):
-        registers = self.stack.pop()
+    def unspill(self, registers: tuple[RegisterNode, ...] | None = None):
+        if registers is None:
+            registers = self.stack.pop()
         return [
             LoadWordInstruction(r, PointerNode(RegisterNode.sp, NumberNode(i * 4)))
             for i, r in enumerate(registers, 1)
@@ -112,6 +113,22 @@ class JumpAndLinkInstruction(InstructionNode, mneumonic='jal'):
         target = arguments[0]
         if not isinstance(target, IdentifierNode):
             raise ValueError(f'`jal` expected an identifier as the first parameter')
+        return cls(target)
+
+
+@dataclass
+class JumpRegisterInstruction(InstructionNode, mneumonic='jr'):
+    target: RegisterNode
+
+    @property
+    def arguments(self) -> Iterable[Node]:
+        return [self.target]
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        target = arguments[0]
+        if not isinstance(target, RegisterNode):
+            raise ValueError('`jr` expected a register as the parameter')
         return cls(target)
 
 

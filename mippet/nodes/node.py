@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict
 from dataclasses import dataclass
 
 
@@ -9,6 +8,27 @@ class Node(ABC):
     @abstractmethod
     def construct(self) -> str:
         raise NotImplemented()
+
+
+@dataclass
+class CommentNode(Node):
+    comment: str
+
+    def construct(self) -> str:
+        return f'# {self.comment}'
+
+
+@dataclass
+class DocCommentNode(Node):
+    item: IdentifierNode
+    comments: list[CommentNode]
+    
+    def construct(self) -> str:
+        return construct([
+            f'\n## {construct(self.item)}',
+            self.comments,
+            '##',
+        ])
 
 
 @dataclass
@@ -41,6 +61,13 @@ class RegisterNode(Node):
     def v0(cls) -> RegisterNode:
         return cls('$v0')
 
+
+    @classmethod
+    @property
+    def v1(cls) -> RegisterNode:
+        return cls('$v1')
+
+
     @classmethod
     @property
     def sp(cls) -> RegisterNode:
@@ -69,16 +96,6 @@ class LabelNode(Node):
         return f'\n{construct(self.name)}:'
 
 
-@dataclass
-class ProcedureNode(Node):
-    name: IdentifierNode
-    parameters: OrderedDict[str, Node]
-
-    def construct(self) -> str:
-        return construct([
-            LabelNode(self.name)
-        ])
-
 
 @dataclass
 class SectionNode(Node):
@@ -92,5 +109,7 @@ class SectionNode(Node):
 def construct(ast) -> str:
     if isinstance(ast, list):
         return '\n'.join(construct(n) for n in ast)
+    if isinstance(ast, str):
+        return ast
     return ast.construct()
 

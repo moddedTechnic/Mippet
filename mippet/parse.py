@@ -29,6 +29,7 @@ def statements_one(p):
 @pg.production('statement : label')
 @pg.production('statement : instruction')
 @pg.production('statement : procedure')
+@pg.production('statement : comment')
 def statement(p):
     return p[0]
 
@@ -42,6 +43,11 @@ def label(p):
 def instruction(p):
     return InstructionNode.parse(p[0], p[1])
 
+
+@pg.production('procedure : doc_comment procedure')
+def documented_procedure(p):
+    p[1].documentation.append(p[0])
+    return p[1]
 
 @pg.production('procedure : KWD_PROC identifier OPEN_PAREN parameters CLOSE_PAREN COLON')
 def procedure(p):
@@ -110,6 +116,31 @@ def identifier(p):
 @pg.production('register : REGISTER')
 def register(p):
     return RegisterNode(p[0].getstr())
+
+
+@pg.production('doc_comment : DOC_COMMENT identifier comments DOC_COMMENT')
+def doc_comment(p):
+    return DocCommentNode(p[1], p[2])
+
+
+@pg.production('comments : ')
+def comments_zero(p):
+    return []
+
+
+@pg.production('comments : comment')
+def comments_one(p):
+    return [p[0]]
+
+
+@pg.production('comments : comment comments')
+def comments_many(p):
+    return [p[0], *p[1]]
+
+
+@pg.production('comment : COMMENT')
+def comment(p):
+    return CommentNode(p[0].getstr()[1:].strip())
 
 
 @pg.error
