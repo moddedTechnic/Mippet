@@ -41,7 +41,6 @@ class InstructionNode(Node, ABC):
 
    
     def __init_subclass__(cls, *, mneumonic: str, **kwargs) -> None:
-        print(mneumonic)
         cls._subclasses[mneumonic] = cls
         cls.__mneumonic__ = mneumonic
         return super().__init_subclass__(**kwargs)
