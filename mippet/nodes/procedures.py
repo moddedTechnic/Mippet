@@ -38,7 +38,6 @@ class ProcedureNode(Node):
         return super().register(ctxt)
 
     def construct(self, ctxt: Context) -> str:
-        print(self.name)
         doc_comments = []
         for doc in self.documentation:
             doc_comments.extend(doc.comments)

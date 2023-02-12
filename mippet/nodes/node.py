@@ -20,7 +20,6 @@ class CommentNode(Node):
     comment: str
 
     def construct(self, ctxt: Context) -> str:
-        print('#', self.comment)
         return f'# {self.comment}'
 
 

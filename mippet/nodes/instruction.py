@@ -19,7 +19,6 @@ class SpillContext:
     def spill(self, *registers: RegisterNode, depth: int = 0):
         if not registers:
             return ''
-        print(registers, depth)
         self.stack.append(registers)
         if not depth:
             return construct([
