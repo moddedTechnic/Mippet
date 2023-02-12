@@ -7,6 +7,7 @@ proc log(x: $a0):
   ret;
 
 proc main():
+  li $a0, 4;
   call log;
   ret;
 
