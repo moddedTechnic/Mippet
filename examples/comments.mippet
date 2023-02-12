@@ -1,7 +1,4 @@
 .text
-entry:
-  j main;
-
 ## log
 # prints 'x' to stdout
 ##
@@ -9,9 +6,7 @@ proc log(x: $a0):
   syscall print_int;
   ret;
 
-main:
+proc main():
   call log;
-
-exit:
-  syscall halt;
+  ret;
 

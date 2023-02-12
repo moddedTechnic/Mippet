@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass, field
 
-from .instruction import CallInstruction, Context, InstructionNode, JumpRegisterInstruction, SyscallInstruction
+from .instruction import CallInstruction, SpillContext, InstructionNode, JumpRegisterInstruction, SyscallInstruction
 from .node import *
 
 
@@ -13,7 +13,10 @@ class SectionNode(Node):
     typ: str
     body: list[Node]
 
-    def construct(self) -> str:
+    def register(self, ctxt: Context) -> Context:
+        return register(self.body, ctxt)
+
+    def construct(self, ctxt: Context) -> str:
         return construct([
             self.typ,
             LabelNode(IdentifierNode('entry')),
@@ -21,7 +24,7 @@ class SectionNode(Node):
             SyscallInstruction(IdentifierNode('halt')),
             self.body,
             '\n'
-        ])
+        ], ctxt)
 
 
 @dataclass
@@ -30,23 +33,37 @@ class ProcedureNode(Node):
     parameters: OrderedDict[str, RegisterNode | PointerNode]
     documentation: list[DocCommentNode] = field(default_factory=list)
 
-    def construct(self) -> str:
+    def register(self, ctxt: Context) -> Context:
+        ctxt.procedures[self.name.name] = self.parameters
+        return super().register(ctxt)
+
+    def construct(self, ctxt: Context) -> str:
+        print(self.name)
         doc_comments = []
         for doc in self.documentation:
             doc_comments.extend(doc.comments)
         if self.parameters:
             doc_comments.append(CommentNode(''))
             doc_comments.extend([
-                CommentNode(f'{construct(r)}: {name}')
+                CommentNode(f'{construct(r, ctxt)}: {name}')
                 for name, r in self.parameters.items()
             ])
-        ctxt = Context()
-        documentation = construct(doc_comments)
-        label = construct(LabelNode(self.name))
+        spill_ctxt = SpillContext(ctxt)
+        documentation = construct(doc_comments, ctxt)
+        label = construct(LabelNode(self.name), ctxt)
         if documentation:
             label = label.lstrip()
             documentation = '\n' + documentation
-        spill = construct(ctxt.spill(*PROCEDURE_SPILLS))
+        spill = construct(
+            spill_ctxt.spill(
+                *PROCEDURE_SPILLS,
+                depth=len([
+                    p for p in self.parameters.values()
+                    if isinstance(p, PointerNode) and p.base == RegisterNode.sp
+                ])
+            ),
+            ctxt
+        )
         return '\n'.join(
             filter(
                 lambda x: x.strip(),
@@ -56,11 +73,11 @@ class ProcedureNode(Node):
 
 
 class ReturnInstruction(InstructionNode, mneumonic='ret'):
-    def construct(self) -> str:
+    def construct(self, ctxt: Context) -> str:
         return construct([
-            Context().unspill(PROCEDURE_SPILLS),
+            SpillContext(ctxt).unspill(PROCEDURE_SPILLS),
             JumpRegisterInstruction(RegisterNode.ra),
-        ])
+        ], ctxt)
 
 
 

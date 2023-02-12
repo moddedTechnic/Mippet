@@ -1,38 +1,66 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .node import Node, IdentifierNode, NumberNode, PointerNode, RegisterNode, construct
+from .node import Context, Node, IdentifierNode, NumberNode, PointerNode, RegisterNode, construct
 
 __dir__ = Path(__file__).parent
 root = __dir__.parent
 
 
 @dataclass
-class Context:
+class SpillContext:
+    ctxt: Context
     stack: list[tuple[RegisterNode, ...]] = field(default_factory=list, init=False)
 
-    def spill(self, *registers: RegisterNode):
+    def spill(self, *registers: RegisterNode, depth: int = 0):
+        if not registers:
+            return ''
+        print(registers, depth)
         self.stack.append(registers)
-        return [
-            AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(-4 * len(registers))),
-        ] + [
-            StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode(i * 4)), r)
-            for i, r in enumerate(registers, 1)
-        ]
+        if not depth:
+            return construct([
+                AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(len(registers) * -4)),
+                [
+                    StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode(i * 4)), r)
+                    for i, r in enumerate(registers, 1)
+                ]
+            ], self.ctxt)
+        if len(registers) > 1:
+            return construct([
+                self.spill(registers[0], depth=depth),
+                self.spill(*registers[1:], depth=depth),
+            ], self.ctxt)
+        register = registers[0]
+        return construct([
+            # advance $sp
+            AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(-4)),
+            # for i in range(depth):
+            #     $t9 = $sp[i+1]
+            #     $sp[i] = $t9
+            [
+                [
+                    LoadWordInstruction(RegisterNode('$t9'), PointerNode(RegisterNode.sp, NumberNode((i+1) * 4))),
+                    StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode(i*4)), RegisterNode('$t9')),
+                ]
+                for i in range(1, depth + 1)
+            ],
+            # $sp[depth + 1] = register
+            StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode((depth+1) * 4)), register),
+        ], self.ctxt)
 
     def unspill(self, registers: tuple[RegisterNode, ...] | None = None):
         if registers is None:
             registers = self.stack.pop()
-        return [
+        return construct([
             LoadWordInstruction(r, PointerNode(RegisterNode.sp, NumberNode(i * 4)))
             for i, r in enumerate(registers, 1)
         ] + [
             AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(4 * len(registers))),
-        ]
+        ], self.ctxt)
      
 
 class InstructionNode(Node, ABC):
@@ -55,8 +83,8 @@ class InstructionNode(Node, ABC):
     def arguments(self) -> Iterable[Node]:
         return []
 
-    def construct(self) -> str:
-        return f'    {self.mneumonic} ' + ', '.join(a.construct() for a in self.arguments)
+    def construct(self, ctxt: Context) -> str:
+        return f'    {self.mneumonic} ' + ', '.join(a.construct(ctxt) for a in self.arguments)
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
@@ -137,21 +165,21 @@ class JumpRegisterInstruction(InstructionNode, mneumonic='jr'):
 
 @dataclass
 class LoadIntegerInstruction(InstructionNode, mneumonic='li'):
-    register: RegisterNode = field()
+    reg: RegisterNode = field()
     value: NumberNode
 
     @property
     def arguments(self) -> Iterable[Node]:
-        return [self.register, self.value]
+        return [self.reg, self.value]
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
-        register, value = arguments
-        if not isinstance(register, RegisterNode):
-            raise ValueError(f'Expected a register as the first argument to `li`')
+        reg, value = arguments
+        if not isinstance(reg, RegisterNode):
+            raise ValueError(f'Expected a reg as the first argument to `li`')
         if not isinstance(value, NumberNode):
             raise ValueError(f'Expected an integer as the second argument to `li`')
-        return cls(register, value)
+        return cls(reg, value)
 
 
 @dataclass
@@ -193,11 +221,30 @@ class StoreWordInstruction(InstructionNode, mneumonic='sw'):
 
 
 @dataclass
+class MoveInstruction(InstructionNode, mneumonic='move'):
+    source: RegisterNode
+    destination: RegisterNode
+
+    @property
+    def arguments(self) -> Iterable[Node]:
+        return [self.destination, self.source]
+
+    @classmethod
+    def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        destination, source = arguments
+        if not isinstance(destination, RegisterNode):
+            raise ValueError('`move` expected a register as the first argument')
+        if not isinstance(source, RegisterNode):
+            raise ValueError('`move` expected a register as the second argument')
+        return cls(source, destination)
+
+
+@dataclass
 class PushInstuction(InstructionNode, mneumonic='push'):
     source: RegisterNode
 
-    def construct(self) -> str:
-        return construct(Context().spill(self.source))
+    def construct(self, ctxt: Context) -> str:
+        return construct(SpillContext(ctxt).spill(self.source), ctxt)
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
@@ -211,8 +258,8 @@ class PushInstuction(InstructionNode, mneumonic='push'):
 class PopInstruction(InstructionNode, mneumonic='pop'):
     destination: RegisterNode
 
-    def construct(self) -> str:
-        return construct(Context().unspill((self.destination,)))
+    def construct(self, ctxt: Context) -> str:
+        return construct(SpillContext(ctxt).unspill((self.destination,)), ctxt)
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
@@ -273,11 +320,11 @@ class MultiplyIntegerInstruction(MathIntegerInstruction, mneumonic='muli'):
     """$D = $S * value
     For technical reasons, $D cannot be $t9
     """
-    def construct(self) -> str:
+    def construct(self, ctxt: Context) -> str:
         return construct([
             LoadIntegerInstruction(RegisterNode('$t9'), self.value),
             MultiplyRegisterInstruction(self.destination, RegisterNode('$t9'), self.source),
-        ])
+        ], ctxt)
 
 
 class MultiplyRegisterInstruction(MathRegisterInstruction, mneumonic='mul'):
@@ -288,13 +335,16 @@ class MultiplyRegisterInstruction(MathRegisterInstruction, mneumonic='mul'):
 class CallInstruction(InstructionNode, mneumonic='call'):
     proc: IdentifierNode
 
-    def construct(self) -> str:
-        ctxt = Context()
+    def construct(self, ctxt: Context) -> str:
+        parameters = ctxt.procedures[self.proc.name]
+        spill_depth = sum(1 for p in parameters.values() if isinstance(p, PointerNode) and p.base == RegisterNode.sp)
+        spill_ctxt = SpillContext(ctxt)
+        # TODO: need to check what we're calling and get spill-preservation depth
         return construct([
-            ctxt.spill(RegisterNode.ra),
+            spill_ctxt.spill(RegisterNode.ra, depth=spill_depth),
             JumpAndLinkInstruction(self.proc),
-            ctxt.unspill(),
-        ])
+            spill_ctxt.unspill(),
+        ], ctxt)
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
@@ -313,23 +363,23 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
         name, id, *_ = line.split(' ')
         SYSCALLS[name] = id
 
-    def construct(self) -> str:
+    def construct(self, ctxt: Context) -> str:
         if self.identifier is None:
-            return super().construct()
+            return super().construct(ctxt)
         syscall_name = self.identifier.name
         syscall_id = self.SYSCALLS.get(syscall_name)
         if syscall_id is None:
             raise ValueError(f'Unknown syscall {syscall_name}')
-        ctxt = Context()
+        spill_ctxt = SpillContext(ctxt)
         return '\n'.join(
             filter(
                 lambda x: x.strip(),
                 construct([
-                    ctxt.spill(RegisterNode.v0),
+                    spill_ctxt.spill(RegisterNode.v0),
                     LoadIntegerInstruction(RegisterNode.v0, NumberNode(syscall_id)),
                     SyscallInstruction(),
-                    ctxt.unspill(),
-                ]).splitlines()
+                    spill_ctxt.unspill(),
+                ], ctxt).splitlines()
             )
         )
 

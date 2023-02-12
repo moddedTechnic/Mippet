@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from mippet import construct, lex, parse
+from mippet import construct, lex, parse, register
 
 
 @dataclass
@@ -31,7 +31,8 @@ def build_file(args: Arguments, target: Path):
     print(f'Building {target_relative}')
     source = target.read_text()
     ast = parse(lex(source))
-    result = construct(ast)
+    context = register(ast)
+    result = construct(ast, context)
     target_path = target_relative
     build_target = (args.build_dir / target_path).with_suffix(args.extension)
     build_target.parent.mkdir(parents=True, exist_ok=True)

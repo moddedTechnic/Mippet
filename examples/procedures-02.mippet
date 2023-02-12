@@ -1,0 +1,16 @@
+.text
+proc log(x: 4($sp)):
+  pop $a0;
+  syscall print_int;
+  ret;
+
+proc main():
+  # $t0 = 64
+  li $t0, 64;
+  # push $t0
+  push $t0;
+  # call log
+  call log;
+  # ret
+  ret;
+
