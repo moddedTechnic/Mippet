@@ -11,17 +11,45 @@ __all__ = 'parse',
 pg = ParserGenerator(Tokens.keys())
 
 
+@pg.production('program : sections')
+def program(p):
+    return p[0]
+
+
+@pg.production('sections : ')
+def sections_none(p):
+    return []
+
+
+@pg.production('sections : section sections')
+def sections_many(p):
+    return [p[0], *p[1]]
+
+
+@pg.production('section : TEXT_SECTION statements')
 @pg.production('section : SECTION statements')
 def section(p):
     return SectionNode(p[0].getstr(), p[1])
 
 
+@pg.production('section : KTEXT_SECTION number statements')
+def ktext_section(p):
+    return KernelTextSectionNode(p[1], p[2])
+
+
+@pg.production('section : DATA_SECTION data_definitions')
+def data_section(p):
+    return DataSectionNode(dict(p[1]))
+
+
 @pg.production('statements : statements statement')
+@pg.production(('data_definitions : data_definitions data_definition'))
 def statements(p):
     return [*p[0], p[1]]
 
 
 @pg.production('statements : statement')
+@pg.production('data_definitions : data_definition')
 def statements_one(p):
     return [p[0]]
 
@@ -32,6 +60,26 @@ def statements_one(p):
 @pg.production('statement : comment')
 def statement(p):
     return p[0]
+
+
+@pg.production('data_definition : label data')
+def data_definition(p):
+    return p
+
+
+@pg.production('data_definition : identifier EQUAL number SEMI')
+def number_data_assign(p):
+    return [LabelNode(p[0]), WordDataDefinitionNode(p[2])]
+
+
+@pg.production('data : ASCII_SECTION string')
+def ascii_data(p):
+    return StringDataDefinitionNode(p[1], p[0].getstr().endswith('z'))
+
+
+@pg.production('data : WORD_SECTION number')
+def word_data(p):
+    return WordDataDefinitionNode(p[1])
 
 
 @pg.production('label : identifier COLON')
@@ -111,6 +159,11 @@ def number(p):
 @pg.production('number : HEX_NUMBER')
 def hex_number(p):
     return NumberNode(int(p[0].getstr(), 16))
+
+
+@pg.production('string : STRING')
+def string(p):
+    return StringNode(p[0].getstr())
 
 
 @pg.production('identifier : IDENTIFIER')

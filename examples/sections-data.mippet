@@ -1,0 +1,13 @@
+.data
+message: .asciiz "Hello, world!"
+
+.text
+proc log():
+  la $a0, message;
+  syscall print_string;
+  ret;
+
+proc main():
+  call log;
+  ret;
+

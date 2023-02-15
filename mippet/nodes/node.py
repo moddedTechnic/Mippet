@@ -47,6 +47,14 @@ class NumberNode(Node):
 
 
 @dataclass
+class StringNode(Node):
+    value: str
+
+    def construct(self, ctxt: Context) -> str:
+        return f'"{self.value}"'
+
+
+@dataclass(eq=True, frozen=True)
 class IdentifierNode(Node):
     name: str
 
@@ -67,7 +75,6 @@ class RegisterNode(Node):
     @property
     def v0(cls) -> RegisterNode:
         return cls('$v0')
-
 
     @classmethod
     @property
@@ -95,7 +102,7 @@ class PointerNode(Node):
         return f'{construct(self.offset, ctxt)}({construct(self.base, ctxt)})'
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class LabelNode(Node):
     name: IdentifierNode
 

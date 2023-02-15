@@ -28,6 +28,58 @@ class SectionNode(Node):
 
 
 @dataclass
+class KernelTextSectionNode(SectionNode):
+    address: NumberNode
+    typ: str = field(default='.ktext', init=False)
+
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            f'{self.typ} {construct(self.address, ctxt)}',
+            self.body,
+            '\n',
+        ], ctxt)
+
+
+class DataNode(Node, ABC):
+    pass
+
+
+@dataclass
+class StringDataDefinitionNode(DataNode):
+    data: StringNode
+    is_null_terminated: bool = True
+
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            '.asciiz' if self.is_null_terminated else '.ascii',
+            self.data,
+        ], ctxt)
+
+
+@dataclass
+class WordDataDefinitionNode(DataNode):
+    data: NumberNode
+
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            '.word',
+            self.data,
+        ], ctxt)
+
+
+@dataclass
+class DataSectionNode(SectionNode):
+    typ: str = field(default='.data', init=False)
+    body: dict[LabelNode, DataNode]
+
+    def register(self, ctxt: Context) -> Context:
+        return ctxt
+
+    def construct(self, ctxt: Context) -> str:
+        return construct(['.data'] + [list(x) for x in self.body.items()], ctxt)
+
+
+@dataclass
 class ProcedureNode(Node):
     name: IdentifierNode
     parameters: OrderedDict[str, RegisterNode | PointerNode]
