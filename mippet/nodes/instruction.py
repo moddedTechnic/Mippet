@@ -184,7 +184,7 @@ class LoadIntegerInstruction(InstructionNode, mneumonic='li'):
 @dataclass
 class LoadWordInstruction(InstructionNode, mneumonic='lw'):
     destination: RegisterNode
-    source: PointerNode
+    source: PointerNode | IdentifierNode
 
     @property
     def arguments(self) -> Iterable[Node]:
@@ -195,8 +195,8 @@ class LoadWordInstruction(InstructionNode, mneumonic='lw'):
         destination, source = arguments
         if not isinstance(destination, RegisterNode):
             raise ValueError(f'Expected a register as the first argument to `lw`')
-        if not isinstance(source, PointerNode):
-            raise ValueError(f'Expected a pointer as the second argument to `lw`')
+        if not isinstance(source, (PointerNode, IdentifierNode)):
+            raise ValueError(f'Expected a pointer or identifier as the second argument to `lw`, got `{type(source).__name__}`')
         return cls(destination, source)
 
 
