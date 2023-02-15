@@ -173,7 +173,7 @@ def hex_number(p):
 
 @pg.production('string : STRING')
 def string(p):
-    return StringNode(p[0].getstr())
+    return StringNode(p[0].getstr()[1:-1])
 
 
 @pg.production('identifier : IDENTIFIER')
