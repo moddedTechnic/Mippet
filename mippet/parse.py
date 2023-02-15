@@ -72,6 +72,16 @@ def number_data_assign(p):
     return [LabelNode(p[0]), WordDataDefinitionNode(p[2])]
 
 
+@pg.production('data_definition : identifier EQUAL string SEMI')
+def string_data_assign(p):
+    return [LabelNode(p[0]), StringDataDefinitionNode(p[2], True)]
+
+
+@pg.production('data_definition : identifier EQUAL string BANG SEMI')
+def raw_string_data_assign(p):
+    return [LabelNode(p[0]), StringDataDefinitionNode(p[2], False)]
+
+
 @pg.production('data : ASCII_SECTION string')
 def ascii_data(p):
     return StringDataDefinitionNode(p[1], p[0].getstr().endswith('z'))
