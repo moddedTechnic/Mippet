@@ -2,14 +2,14 @@ print_int 1
 print_float 2
 print_double 3
 print_string 4
-read_integer 5
+read_int 5
 read_float 6
 read_double 7
 read_string 8
 sbrk 9
 halt 10 
-print_character 11
-read_character 12
+print_char 11
+read_char 12
 open_file 13
 read_file 14
 write_file 15
