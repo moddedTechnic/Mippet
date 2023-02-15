@@ -58,7 +58,7 @@ class StringDataDefinitionNode(DataNode):
 
 @dataclass
 class WordDataDefinitionNode(DataNode):
-    data: NumberNode
+    data: NumberNode | ArrayNode
 
     def construct(self, ctxt: Context) -> str:
         return construct([

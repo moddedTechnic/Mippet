@@ -68,6 +68,7 @@ def data_definition(p):
 
 
 @pg.production('data_definition : identifier EQUAL number SEMI')
+@pg.production('data_definition : identifier EQUAL array SEMI')
 def number_data_assign(p):
     return [LabelNode(p[0]), WordDataDefinitionNode(p[2])]
 
@@ -174,6 +175,26 @@ def hex_number(p):
 @pg.production('string : STRING')
 def string(p):
     return StringNode(p[0].getstr()[1:-1])
+
+
+@pg.production('array : OPEN_BRACK array_items CLOSE_BRACK')
+def array(p):
+    return ArrayNode(p[1])
+
+
+@pg.production('array_items : array_item')
+def array_items_one(p):
+    return [p[0]]
+
+
+@pg.production('array_items : array_item COMMA array_items')
+def array_items_many(p):
+    return [p[0], *p[2]]
+
+
+@pg.production('array_item : number')
+def array_item(p):
+    return p[0]
 
 
 @pg.production('identifier : IDENTIFIER')

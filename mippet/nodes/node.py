@@ -54,6 +54,14 @@ class StringNode(Node):
         return f'"{self.value}"'
 
 
+@dataclass
+class ArrayNode(Node):
+    value: list[NumberNode]
+
+    def construct(self, ctxt: Context) -> str:
+        return ', '.join(construct(v, ctxt) for v in self.value)
+
+
 @dataclass(eq=True, frozen=True)
 class IdentifierNode(Node):
     name: str

@@ -31,6 +31,8 @@ class Tokens(Enum):
     EQUAL = r'='
     OPEN_PAREN = r'\('
     CLOSE_PAREN = r'\)'
+    OPEN_BRACK = r'\['
+    CLOSE_BRACK = r'\]'
 
     @classmethod
     def items(cls) -> Iterable[tuple[str, str]]:
