@@ -76,7 +76,14 @@ class DataSectionNode(SectionNode):
         return ctxt
 
     def construct(self, ctxt: Context) -> str:
-        return construct(['.data'] + [list(x) for x in self.body.items()], ctxt)
+        return construct(
+            [
+                '.data',
+                LabelNode(IdentifierNode('_return')),
+                WordDataDefinitionNode(NumberNode(0)),
+            ] + [list(x) for x in self.body.items()],
+            ctxt
+        )
 
 
 @dataclass

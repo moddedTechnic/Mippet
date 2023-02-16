@@ -202,7 +202,7 @@ class LoadWordInstruction(InstructionNode, mneumonic='lw'):
 
 @dataclass
 class StoreWordInstruction(InstructionNode, mneumonic='sw'):
-    destination: PointerNode
+    destination: PointerNode | IdentifierNode
     source: RegisterNode
 
     @property
@@ -214,7 +214,7 @@ class StoreWordInstruction(InstructionNode, mneumonic='sw'):
         source, destination = arguments
         if not isinstance(source, RegisterNode):
             raise ValueError(f'Expected a register as the first argument to `lw`')
-        if not isinstance(destination, PointerNode):
+        if not isinstance(destination, (PointerNode, IdentifierNode)):
             raise ValueError(f'Expected a pointer as the second argument to `lw`')
         return cls(destination, source)
 
@@ -377,6 +377,7 @@ class SyscallInstruction(InstructionNode, mneumonic='syscall'):
                     spill_ctxt.spill(RegisterNode.v0),
                     LoadIntegerInstruction(RegisterNode.v0, NumberNode(syscall_id)),
                     SyscallInstruction(),
+                    StoreWordInstruction(IdentifierNode('_return'), RegisterNode.v0),
                     spill_ctxt.unspill(),
                 ], ctxt).splitlines()
             )
