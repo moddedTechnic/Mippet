@@ -255,13 +255,17 @@ class PushInstuction(InstructionNode, mneumonic='push'):
 
 @dataclass
 class PopInstruction(InstructionNode, mneumonic='pop'):
-    destination: RegisterNode
+    destination: RegisterNode | None = None
 
     def construct(self, ctxt: Context) -> str:
+        if not self.destination:
+            return construct(AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(4)), ctxt)
         return construct(SpillContext(ctxt).unspill((self.destination,)), ctxt)
 
     @classmethod
     def parse_arguments(cls, arguments: list[Node]) -> InstructionNode:
+        if len(arguments) == 0:
+            return cls()
         destination = arguments[0]
         if not isinstance(destination, RegisterNode):
             raise ValueError(f'`pop` expects a pointer as the argument')
