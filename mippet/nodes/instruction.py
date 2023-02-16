@@ -334,6 +334,22 @@ class MultiplyRegisterInstruction(MathRegisterInstruction, mneumonic='mul'):
     pass
 
 
+class ModuloIntegerInstruction(MathIntegerInstruction, mneumonic='modi'):
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            LoadIntegerInstruction(RegisterNode('$t9'), self.value),
+            ModuloRegisterInstruction(self.destination, self.source, RegisterNode('$t9')),
+        ], ctxt)
+
+
+class ModuloRegisterInstruction(MathRegisterInstruction, mneumonic='mod'):
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            GenericInstruction.parse_arguments([IdentifierNode('div'), self.source, self.value]),
+            GenericInstruction.parse_arguments([IdentifierNode('mfhi'), self.destination]),
+        ], ctxt)
+
+
 @dataclass
 class CallInstruction(InstructionNode, mneumonic='call'):
     proc: IdentifierNode
