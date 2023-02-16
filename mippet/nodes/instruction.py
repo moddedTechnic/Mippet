@@ -30,16 +30,12 @@ class SpillContext:
             ], self.ctxt)
         if len(registers) > 1:
             return construct([
-                self.spill(registers[0], depth=depth),
-                self.spill(*registers[1:], depth=depth),
+                self.spill(registers[-1], depth=depth),
+                self.spill(*registers[:-1], depth=depth),
             ], self.ctxt)
         register = registers[0]
         return construct([
-            # advance $sp
             AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(-4)),
-            # for i in range(depth):
-            #     $t9 = $sp[i+1]
-            #     $sp[i] = $t9
             [
                 [
                     LoadWordInstruction(RegisterNode('$t9'), PointerNode(RegisterNode.sp, NumberNode((i+1) * 4))),
@@ -47,7 +43,6 @@ class SpillContext:
                 ]
                 for i in range(1, depth + 1)
             ],
-            # $sp[depth + 1] = register
             StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode((depth+1) * 4)), register),
         ], self.ctxt)
 
