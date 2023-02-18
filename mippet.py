@@ -32,6 +32,7 @@ def build_file(args: Arguments, target: Path):
     source = target.read_text()
     ast = parse(lex(source))
     context = register(ast)
+    context.validate()
     result = construct(ast, context)
     target_path = target_relative
     build_target = (args.build_dir / target_path).with_suffix(args.extension)

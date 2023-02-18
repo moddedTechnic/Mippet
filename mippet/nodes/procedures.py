@@ -73,6 +73,9 @@ class DataSectionNode(SectionNode):
     body: dict[LabelNode, DataNode]
 
     def register(self, ctxt: Context) -> Context:
+        for k, v in self.body.items():
+            ctxt = register(k, ctxt)
+            ctxt = register(v, ctxt)
         return ctxt
 
     def construct(self, ctxt: Context) -> str:

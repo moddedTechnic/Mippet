@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from functools import partial
+from warnings import warn
 
 
 class Node(ABC):
@@ -66,6 +67,10 @@ class ArrayNode(Node):
 class IdentifierNode(Node):
     name: str
 
+    def register(self, ctxt: Context) -> Context:
+        ctxt.symbols[self] += 1
+        return super().register(ctxt)
+
     def construct(self, ctxt: Context) -> str:
         return self.name
 
@@ -114,6 +119,11 @@ class PointerNode(Node):
 class LabelNode(Node):
     name: IdentifierNode
 
+    def register(self, ctxt: Context) -> Context:
+        if self.name not in ctxt.symbols:
+            ctxt.symbols[self.name] = 0
+        return super().register(ctxt)
+
     def construct(self, ctxt: Context) -> str:
         return f'\n{construct(self.name, ctxt)}:'
 
@@ -121,6 +131,15 @@ class LabelNode(Node):
 @dataclass()
 class Context:
     procedures: dict[str, OrderedDict[str, RegisterNode | PointerNode]] = field(default_factory=partial(defaultdict, list), init=False)
+    symbols: defaultdict[IdentifierNode, int] = field(default_factory=partial(defaultdict, int), init=False)
+
+    def validate(self) -> None:
+        for symbol, count in self.symbols.items():
+            if count != 0:
+                continue
+            if symbol.name.startswith('_'):
+                continue
+            warn(f'{symbol.name} is unused')
 
 
 def register(ast, ctxt: Context | None = None) -> Context:

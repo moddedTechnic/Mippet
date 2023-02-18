@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .node import Context, Node, IdentifierNode, NumberNode, PointerNode, RegisterNode, construct
+from .node import Context, Node, IdentifierNode, NumberNode, PointerNode, RegisterNode, construct, register
 
 __dir__ = Path(__file__).parent
 root = __dir__.parent
@@ -76,6 +76,11 @@ class InstructionNode(Node, ABC):
     @property
     def arguments(self) -> Iterable[Node]:
         return []
+
+    def register(self, ctxt: Context) -> Context:
+        for arg in self.arguments:
+            ctxt = register(arg, ctxt)
+        return super().register(ctxt)
 
     def construct(self, ctxt: Context) -> str:
         return f'    {self.mneumonic} ' + ', '.join(a.construct(ctxt) for a in self.arguments)
