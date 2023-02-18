@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict, OrderedDict
 from dataclasses import dataclass, field
 from functools import partial
+import warnings
 from warnings import warn
 
 
@@ -128,18 +129,25 @@ class LabelNode(Node):
         return f'\n{construct(self.name, ctxt)}:'
 
 
+class UnusedSymbolWarning(UserWarning):
+    pass
+
+
 @dataclass()
 class Context:
     procedures: dict[str, OrderedDict[str, RegisterNode | PointerNode]] = field(default_factory=partial(defaultdict, list), init=False)
     symbols: defaultdict[IdentifierNode, int] = field(default_factory=partial(defaultdict, int), init=False)
 
     def validate(self) -> None:
+        warnings.simplefilter('always', UnusedSymbolWarning)
         for symbol, count in self.symbols.items():
             if count != 0:
                 continue
             if symbol.name.startswith('_'):
                 continue
-            warn(f'{symbol.name} is unused')
+            if symbol.name in {'main'}:
+                continue
+            warn(f'{symbol.name} is unused', UnusedSymbolWarning)
 
 
 def register(ast, ctxt: Context | None = None) -> Context:

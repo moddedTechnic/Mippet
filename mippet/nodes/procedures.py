@@ -97,6 +97,8 @@ class ProcedureNode(Node):
 
     def register(self, ctxt: Context) -> Context:
         ctxt.procedures[self.name.name] = self.parameters
+        if self.name not in ctxt.symbols:
+            ctxt.symbols[self.name] = 0
         return super().register(ctxt)
 
     def construct(self, ctxt: Context) -> str:

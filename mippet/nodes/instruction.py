@@ -354,11 +354,14 @@ class ModuloRegisterInstruction(MathRegisterInstruction, mneumonic='mod'):
 class CallInstruction(InstructionNode, mneumonic='call'):
     proc: IdentifierNode
 
+    def register(self, ctxt: Context) -> Context:
+        ctxt.symbols[self.proc] += 1
+        return super().register(ctxt)
+
     def construct(self, ctxt: Context) -> str:
         parameters = ctxt.procedures[self.proc.name]
         spill_depth = sum(1 for p in parameters.values() if isinstance(p, PointerNode) and p.base == RegisterNode.sp)
         spill_ctxt = SpillContext(ctxt)
-        # TODO: need to check what we're calling and get spill-preservation depth
         return construct([
             spill_ctxt.spill(RegisterNode.ra, depth=spill_depth),
             JumpAndLinkInstruction(self.proc),
