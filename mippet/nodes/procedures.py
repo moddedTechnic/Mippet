@@ -83,6 +83,8 @@ class DataSectionNode(SectionNode):
             [
                 '.data',
                 LabelNode(IdentifierNode('_return')),
+                CommentNode('A place to store return values from syscalls'),
+                CommentNode('Useful as we spill `$v0` around syscalls'),
                 WordDataDefinitionNode(NumberNode(0)),
             ] + [list(x) for x in self.body.items()],
             ctxt
@@ -139,6 +141,7 @@ class ReturnInstruction(InstructionNode, mneumonic='ret'):
     def construct(self, ctxt: Context) -> str:
         return construct([
             SpillContext(ctxt).unspill(PROCEDURE_SPILLS),
+            CommentNode('Return to the caller'),
             JumpRegisterInstruction(RegisterNode.ra),
         ], ctxt)
 

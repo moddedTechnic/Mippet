@@ -20,7 +20,7 @@ class SpillContext:
         _construct = partial(construct, ctxt=self.ctxt)
         if not registers:
             return ''
-        comment = [CommentNode('Spills the register{} {}'.format('' if len(registers) == 1 else 's', ', '.join(map(_construct, registers))))]
+        comment = [CommentNode('Spill the register{} {}'.format('' if len(registers) == 1 else 's', ', '.join(map(_construct, registers))))]
         self.stack.append(registers)
         if not depth:
             return construct(comment + [
@@ -36,9 +36,9 @@ class SpillContext:
             rest = self.spill(*registers[:-1], depth=depth)
             self.ctxt.verbose = verbose
             if depth == 1:
-                comment.append(CommentNode(f'but keeps the top item at the top of the stack'))
+                comment.append(CommentNode(f'but keep the top item at the top of the stack'))
             else:
-                comment.append(CommentNode(f'but keeps the top {depth} items at the top of the stack'))
+                comment.append(CommentNode(f'but keep the top {depth} items at the top of the stack'))
             return construct([comment, top, rest], self.ctxt)
         register = registers[0]
         return construct([
@@ -56,7 +56,11 @@ class SpillContext:
     def unspill(self, registers: tuple[RegisterNode, ...] | None = None):
         if registers is None:
             registers = self.stack.pop()
-        return construct([
+        _construct = partial(construct, ctxt=self.ctxt)
+        comment = [
+            CommentNode('Unspill the register{} {}'.format('' if len(registers) == 1 else 's', ', '.join(map(_construct, registers))))
+        ]
+        return construct(comment + [
             LoadWordInstruction(r, PointerNode(RegisterNode.sp, NumberNode(i * 4)))
             for i, r in enumerate(registers, 1)
         ] + [
@@ -370,6 +374,7 @@ class CallInstruction(InstructionNode, mneumonic='call'):
         spill_depth = sum(1 for p in parameters.values() if isinstance(p, PointerNode) and p.base == RegisterNode.sp)
         spill_ctxt = SpillContext(ctxt)
         return construct([
+            CommentNode(f'Call procedure {self.proc.name}'),
             spill_ctxt.spill(RegisterNode.ra, depth=spill_depth),
             JumpAndLinkInstruction(self.proc),
             spill_ctxt.unspill(),
