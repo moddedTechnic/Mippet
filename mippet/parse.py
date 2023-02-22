@@ -169,7 +169,7 @@ def number(p):
 
 @pg.production('number : HEX_NUMBER')
 def hex_number(p):
-    return NumberNode(int(p[0].getstr(), 16))
+    return NumberNode(int(p[0].getstr(), 16), hex)
 
 
 @pg.production('string : STRING')

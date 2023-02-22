@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict, OrderedDict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import partial
 import warnings
@@ -22,6 +23,8 @@ class CommentNode(Node):
     comment: str
 
     def construct(self, ctxt: Context) -> str:
+        if not ctxt.verbose:
+            return ''
         return f'# {self.comment}'
 
 
@@ -31,7 +34,7 @@ class DocCommentNode(Node):
     comments: list[CommentNode]
     
     def construct(self, ctxt: Context) -> str:
-        if not self.comments:
+        if not self.comments or not ctxt.verbose:
             return ''
         return construct([
             f'\n## {construct(self.item, ctxt)}',
@@ -43,9 +46,12 @@ class DocCommentNode(Node):
 @dataclass
 class NumberNode(Node):
     value: int
+    convert: Callable[[int], str] = str
 
     def construct(self, ctxt: Context) -> str:
-        return str(self.value)
+        if not ctxt.verbose:
+            return str(self.value)
+        return self.convert(self.value)
 
 
 @dataclass
@@ -137,6 +143,7 @@ class UnusedSymbolWarning(UserWarning):
 class Context:
     procedures: dict[str, OrderedDict[str, RegisterNode | PointerNode]] = field(default_factory=partial(defaultdict, list), init=False)
     symbols: defaultdict[IdentifierNode, int] = field(default_factory=partial(defaultdict, int), init=False)
+    verbose: bool = False
 
     def validate(self) -> None:
         warnings.simplefilter('always', UnusedSymbolWarning)
@@ -162,7 +169,10 @@ def register(ast, ctxt: Context | None = None) -> Context:
 
 def construct(ast, ctxt: Context) -> str:
     if isinstance(ast, list):
-        return '\n'.join(construct(n, ctxt) for n in ast)
+        result = '\n'.join(construct(n, ctxt).rstrip() for n in ast)
+        while '\n\n\n' in result:
+            result = result.replace('\n\n\n', '\n\n')
+        return result
     if isinstance(ast, str):
         return ast
     return ast.construct(ctxt)

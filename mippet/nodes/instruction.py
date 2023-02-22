@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .node import Context, Node, IdentifierNode, NumberNode, PointerNode, RegisterNode, construct, register
+from .node import *
 
 __dir__ = Path(__file__).parent
 root = __dir__.parent
@@ -17,11 +17,13 @@ class SpillContext:
     stack: list[tuple[RegisterNode, ...]] = field(default_factory=list, init=False)
 
     def spill(self, *registers: RegisterNode, depth: int = 0):
+        _construct = partial(construct, ctxt=self.ctxt)
         if not registers:
             return ''
+        comment = [CommentNode('Spills the register{} {}'.format('' if len(registers) == 1 else 's', ', '.join(map(_construct, registers))))]
         self.stack.append(registers)
         if not depth:
-            return construct([
+            return construct(comment + [
                 AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(len(registers) * -4)),
                 [
                     StoreWordInstruction(PointerNode(RegisterNode.sp, NumberNode(i * 4)), r)
@@ -29,10 +31,15 @@ class SpillContext:
                 ]
             ], self.ctxt)
         if len(registers) > 1:
-            return construct([
-                self.spill(registers[-1], depth=depth),
-                self.spill(*registers[:-1], depth=depth),
-            ], self.ctxt)
+            self.ctxt.verbose, verbose = False, self.ctxt.verbose
+            top = self.spill(registers[-1], depth=depth)
+            rest = self.spill(*registers[:-1], depth=depth)
+            self.ctxt.verbose = verbose
+            if depth == 1:
+                comment.append(CommentNode(f'but keeps the top item at the top of the stack'))
+            else:
+                comment.append(CommentNode(f'but keeps the top {depth} items at the top of the stack'))
+            return construct([comment, top, rest], self.ctxt)
         register = registers[0]
         return construct([
             AddIntegerInstruction(RegisterNode.sp, RegisterNode.sp, NumberNode(-4)),

@@ -102,6 +102,7 @@ class ProcedureNode(Node):
         return super().register(ctxt)
 
     def construct(self, ctxt: Context) -> str:
+        _construct = partial(construct, ctxt=ctxt)
         doc_comments = []
         for doc in self.documentation:
             doc_comments.extend(doc.comments)
@@ -112,21 +113,20 @@ class ProcedureNode(Node):
                 for name, r in self.parameters.items()
             ])
         spill_ctxt = SpillContext(ctxt)
-        documentation = construct(doc_comments, ctxt)
-        label = construct(LabelNode(self.name), ctxt)
+        documentation = _construct(doc_comments)
+        label = _construct(LabelNode(self.name))
         if documentation:
             label = label.lstrip()
             documentation = '\n' + documentation
-        spill = construct(
+        spill = _construct([
             spill_ctxt.spill(
                 *PROCEDURE_SPILLS,
                 depth=len([
                     p for p in self.parameters.values()
                     if isinstance(p, PointerNode) and p.base == RegisterNode.sp
                 ])
-            ),
-            ctxt
-        )
+            )
+        ])
         return '\n'.join(
             filter(
                 lambda x: x.strip(),

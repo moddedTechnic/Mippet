@@ -1,3 +1,4 @@
+from ctypes import ArgumentError
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -9,14 +10,30 @@ class Arguments:
     executable: Path
     target: Path
     build_dir: Path
+    verbose: bool = False
     extension: str = '.asm'
 
     @classmethod
     def parse(cls, argv: list[str]):
-        executable = Path(argv[0]).resolve()
-        target = Path(argv[1]).resolve()
+        args = iter(argv)
+        executable = Path(next(args)).resolve()
+        target = None
         build_dir = Path.cwd() / 'build'
-        return cls(executable, target, build_dir)
+        verbose = False
+        extension = '.asm'
+        for arg in args:
+            if not arg.startswith('-'):
+                target = Path(arg).resolve()
+            match arg:
+                case '-d' | '--dir':
+                    build_dir = Path(next(args)).resolve()
+                case '-e' | '--extension':
+                    extension = next(args)
+                case '-v' | '--verbose':
+                    verbose = True
+        if target is None:
+            raise ArgumentError(f'Could not find a target to build')
+        return cls(executable, target, build_dir, verbose, extension)
 
 
 def build_dir(args: Arguments, target: Path):
@@ -33,6 +50,7 @@ def build_file(args: Arguments, target: Path):
     ast = parse(lex(source))
     context = register(ast)
     context.validate()
+    context.verbose = args.verbose
     result = construct(ast, context)
     target_path = target_relative
     build_target = (args.build_dir / target_path).with_suffix(args.extension)
