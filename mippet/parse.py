@@ -13,7 +13,16 @@ pg = ParserGenerator(Tokens.keys())
 
 @pg.production('program : sections')
 def program(p):
-    return p[0]
+    kwargs = {}
+    for section in p[0]:
+        typ = {
+            'SectionNode': 'text',
+            'DataSectionNode': 'data',
+        }.get(type(section).__name__)
+        if typ is None:
+            raise TypeError(f'Unknown section `{type(section).__name__}`')
+        kwargs[typ] = section
+    return ProgramNode(**kwargs)
 
 
 @pg.production('sections : ')

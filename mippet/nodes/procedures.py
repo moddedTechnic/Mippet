@@ -146,15 +146,19 @@ class ReturnInstruction(InstructionNode, mneumonic='ret'):
         ], ctxt)
 
 
+@dataclass
+class ProgramNode(Node):
+    text: SectionNode | None = None
+    data: DataSectionNode = field(default_factory=lambda: DataSectionNode({}))
 
+    def register(self, ctxt: Context) -> Context:
+        ctxt = register(self.text, ctxt)
+        ctxt = register(self.data, ctxt)
+        return ctxt
 
-
-
-
-
-
-
-
-
-
+    def construct(self, ctxt: Context) -> str:
+        return construct([
+            self.data,
+            self.text,
+        ], ctxt)
 
